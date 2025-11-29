@@ -10,7 +10,22 @@ class Redis:
     def keys(self, pattern='*'):
         cmd = f"*2\r\n$4\r\nKEYS\r\n${len(pattern)}\r\n{pattern}\r\n"
         self.sock.sendall(cmd.encode())
-        data = self.sock.recv(4096)  # This may need to be larger for many keys.
+        return self.receive()
+
+    def read(self, key, pattern='DATA'):
+        command = f"{pattern}:{key}"
+        cmd = f"*2\r\n$3\r\nGET\r\n${len(command)}\r\n{command}\r\n"
+        self.sock.sendall(cmd.encode())
+        return self.receive()[0]
+
+    def write(self, key, value , pattern='DATA'):
+        redis_key = f"{pattern}:{key}"
+        cmd = f"*3\r\n$3\r\nSET\r\n${len(redis_key)}\r\n{redis_key}\r\n${len(str(value))}\r\n{value}\r\n"
+        self.sock.sendall(cmd.encode())
+        return self.receive( )
+
+    def receive(self, size=4096 ):
+        data = self.sock.recv( size )
         return self._parse_resp(data)
 
     def _parse_resp(self, data):
@@ -28,3 +43,6 @@ class Redis:
 if __name__ == "__main__":
     r = Redis( "cache.local" )
     print( r.keys() )
+    print( r.read( "PLANE ALTITUDE" )) 
+    r.write( "PLANE ALTITUDE" , 8.99999 ) 
+    print( r.read( "PLANE ALTITUDE" )) 
